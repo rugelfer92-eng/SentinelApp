@@ -1,0 +1,36 @@
+@startuml
+title Caso de Uso - SentinelApp
+
+left to right direction
+
+actor "Usuario autenticado" as User
+actor "Administrador" as Admin
+
+rectangle "SentinelApp" {
+  usecase "Iniciar sesión" as UC_Login
+  usecase "Cerrar sesión" as UC_Logout
+  usecase "Ver dashboard de sensores" as UC_Dashboard
+  usecase "Ver historial de lecturas" as UC_History
+  usecase "Conectar ESP32 vía BLE" as UC_ConnectBLE
+  usecase "Sincronizar datos con servidor" as UC_Sync
+  usecase "Ver personal" as UC_ViewStaff
+  usecase "Editar personal" as UC_EditStaff
+  usecase "Modificar configuración" as UC_Config
+  usecase "Ver auditoría" as UC_Audit
+}
+
+User --> UC_Login
+User --> UC_Logout
+User --> UC_Dashboard
+User --> UC_History
+User --> UC_ConnectBLE
+User --> UC_Sync
+User --> UC_ViewStaff
+
+Admin --> UC_EditStaff
+Admin --> UC_Config
+Admin --> UC_Audit
+Admin --> UC_ViewStaff
+Admin --> UC_Dashboard
+
+@enduml

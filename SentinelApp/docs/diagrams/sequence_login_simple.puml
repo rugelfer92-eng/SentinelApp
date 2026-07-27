@@ -1,0 +1,15 @@
+@startuml
+title Secuencia Simple: Login
+
+actor Usuario
+participant AuthProvider
+participant Backend
+participant AsyncStorage
+
+Usuario -> AuthProvider: ingresar credenciales
+AuthProvider -> Backend: POST /api/empleados/login
+Backend --> AuthProvider: 200 { user }
+AuthProvider -> AsyncStorage: guardar user
+AuthProvider --> Usuario: mostrar pantalla principal (success)
+
+@enduml

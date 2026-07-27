@@ -1,0 +1,30 @@
+@startuml
+title Secuencia: Sincronización de datos (ESP32 → Servidor)
+
+actor ESP32
+participant "BluetoothProvider (App)" as App
+participant "SQLite Local DB" as LocalDB
+participant "DataSync (syncWithCloud)" as Sync
+participant "SensorService" as APIClient
+participant "API Server" as Backend
+
+ESP32 -> App: Notify (JSON: temp,hum,volt,relay)
+App -> App: handleIncomingData(json)
+App -> LocalDB: INSERT lecturas (temp,volt,hum,fecha)
+note right: saveToLocal() guarda en SQLite
+
+... periódicamente ...
+
+Sync -> LocalDB: SELECT * FROM lecturas ORDER BY id ASC
+LocalDB --> Sync: [rows]
+loop por cada row
+  Sync -> APIClient: saveSensorData(row)
+  APIClient -> Backend: POST /api/sensores {temp,volt,hum,fecha}
+  Backend --> APIClient: 200 OK
+  APIClient --> Sync: success
+  Sync -> LocalDB: DELETE FROM lecturas WHERE id = ?
+end
+
+Sync --> App: devuelve cantidad subidos
+
+@enduml

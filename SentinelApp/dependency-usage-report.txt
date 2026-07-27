@@ -1,0 +1,167 @@
+******@expo/metro-runtime
+- Para qué sirve: Runtime de Metro para proyectos Expo, usado por el empaquetado y por Expo Router en tiempo de ejecución.
+- Dónde se usa: No se encontró import directo en el código fuente, pero es una dependencia runtime de Expo/Expo Router.
+
+@expo/vector-icons
+- Para qué sirve: Conjunto de iconos vectoriales Expo (Ionicons, MaterialIcons, etc.).
+- Dónde se usa: app/(tabs)/_layout.tsx, components/ui/icon-symbol.tsx.
+
+@react-native-async-storage/async-storage
+- Para qué sirve: Almacenamiento asíncrono local en React Native.
+- Dónde se usa: src/auth/AuthContext.tsx.
+
+@react-native-community/datetimepicker
+- Para qué sirve: Selector nativo de fecha y hora para React Native.
+- Dónde se usa: app/(tabs)/historial.tsx.
+
+@react-navigation/bottom-tabs
+- Para qué sirve: Componentes para navegación con pestañas inferiores.
+- Dónde se usa: components/haptic-tab.tsx.
+
+@react-navigation/elements
+- Para qué sirve: Componentes auxiliares de React Navigation (botones, vistas, etc.).
+- Dónde se usa: components/haptic-tab.tsx.
+
+@react-navigation/native
+- Para qué sirve: Núcleo de React Navigation para la navegación nativa.
+- Dónde se usa: No se encontró import directo en el código fuente; probablemente es requerido por Expo Router y las bibliotecas de navegación.
+
+buffer
+- Para qué sirve: Biblioteca Buffer para manejar datos binarios en React Native y Expo.
+- Dónde se usa: app/_layout.tsx, src/bluetooth/BluetoothContext.tsx.
+
+expo
+- Para qué sirve: SDK base de Expo que habilita APIs nativas, integración y herramientas.
+- Dónde se usa: Es el paquete central del proyecto; no hay import directo específico en el código fuente.
+
+expo-constants
+- Para qué sirve: Acceso a constantes de app y entorno en Expo.
+- Dónde se usa: No se encontró import directo en el código fuente; es una utilidad de Expo.
+
+expo-dev-client
+- Para qué sirve: Cliente de desarrollo personalizado de Expo para pruebas en dispositivo.
+- Dónde se usa: No se encontró import directo en el código fuente; está presente como dependencia de desarrollo para builds de desarrollo.
+
+expo-font
+- Para qué sirve: Carga y gestión de fuentes personalizadas en Expo.
+- Dónde se usa: No se encontró import directo en el código fuente; es común en proyectos Expo para tipografías e iconos.
+
+expo-haptics
+- Para qué sirve: API de vibración/háptica en Expo.
+- Dónde se usa: components/haptic-tab.tsx.
+
+expo-image
+- Para qué sirve: Componente de imagen optimizado de Expo.
+- Dónde se usa: No se encontró import directo en el código fuente; es una utilidad de Expo para imágenes.
+
+expo-linking
+- Para qué sirve: Manejo de enlaces profundos y URIs en Expo.
+- Dónde se usa: No se encontró import directo en el código fuente; puede ser usado indirectamente por la navegación o Expo Router.
+
+expo-location
+- Para qué sirve: API de ubicación de Expo.
+- Dónde se usa: No se encontró import directo en el código fuente.
+
+expo-navigation-bar
+- Para qué sirve: Control de la barra de navegación de Android en Expo.
+- Dónde se usa: No se encontró import directo en el código fuente.
+
+expo-notifications
+- Para qué sirve: Manejo de notificaciones push y locales en Expo.
+- Dónde se usa: src/notifications/notificationService.ts.
+
+expo-router
+- Para qué sirve: Enrutador de Expo basado en archivos para navegación en la app.
+- Dónde se usa: app/_layout.tsx, app/modal.tsx, app/(tabs)/_layout.tsx, app/(auth)/_layout.tsx, app/(auth)/login.tsx, components/external-link.tsx, src/auth/AuthContext.tsx.
+
+expo-secure-store
+- Para qué sirve: Almacenamiento seguro de datos sensibles en Expo.
+- Dónde se usa: No se encontró import directo en el código fuente; está listado en app.json para config de permisos.
+
+expo-splash-screen
+- Para qué sirve: Control del splash screen en Expo.
+- Dónde se usa: app.json y configuración de Expo; no hay import directo en el código fuente.
+
+expo-sqlite
+- Para qué sirve: Acceso a SQLite embebido en Expo.
+- Dónde se usa: src/bluetooth/DataSync.ts (require de expo-sqlite según plataforma).
+
+expo-status-bar
+- Para qué sirve: Componente de barra de estado de Expo.
+- Dónde se usa: No se encontró import directo en el código fuente; es una dependencia de UI de Expo.
+
+expo-system-ui
+- Para qué sirve: Control de estilo de la UI del sistema en Expo.
+- Dónde se usa: No se encontró import directo en el código fuente.
+
+expo-web-browser
+- Para qué sirve: Abrir URLs en el navegador externo desde Expo.
+- Dónde se usa: components/external-link.tsx.
+
+react
+- Para qué sirve: Biblioteca principal de React usada en componentes y hooks.
+- Dónde se usa: Importada en múltiples archivos .tsx del proyecto.
+
+react-dom
+- Para qué sirve: React DOM para ejecución web.
+- Dónde se usa: Necesario para el bundle web de Expo; no hay import directo en el código fuente.
+
+react-native
+- Para qué sirve: Biblioteca principal de React Native para componentes y APIs nativas.
+- Dónde se usa: Importada en muchos archivos del proyecto.
+
+react-native-base64
+- Para qué sirve: Funciones Base64 en React Native.
+- Dónde se usa: src/bluetooth/BluetoothContext.tsx.
+
+react-native-ble-plx
+- Para qué sirve: Biblioteca BLE para comunicación Bluetooth.
+- Dónde se usa: src/bluetooth/BluetoothContext.tsx.
+
+react-native-chart-kit
+- Para qué sirve: Componentes de gráficos para React Native.
+- Dónde se usa: No se encontró import directo en el escaneo actual; puede ser utilizado en alguna pantalla no analizada explícitamente.
+
+react-native-gesture-handler
+- Para qué sirve: Manejo avanzado de gestos nativo en React Native.
+- Dónde se usa: Necesario para React Navigation / Expo Router; no hay import directo detectado.
+
+react-native-reanimated
+- Para qué sirve: Animaciones y worklets de alto rendimiento.
+- Dónde se usa: components/hello-wave.tsx, components/parallax-scroll-view.tsx.
+
+react-native-safe-area-context
+- Para qué sirve: Manejo de safe area en iOS y Android.
+- Dónde se usa: Necesario para la navegación y UI; no se detectó import directo en el escaneo.
+
+react-native-screens
+- Para qué sirve: Optimizaciones de pantalla para navegación.
+- Dónde se usa: Necesario para React Navigation; no se detectó import directo.
+
+react-native-svg
+- Para qué sirve: Renderizado SVG en React Native.
+- Dónde se usa: No se encontró import directo; puede ser usado por gráficos o componentes SVG.
+
+react-native-web
+- Para qué sirve: Compatibilidad web de React Native.
+- Dónde se usa: Necesario para el bundle web de Expo; no hay import directo en el código fuente.
+
+react-native-worklets
+- Para qué sirve: Soporte para worklets de Reanimated.
+- Dónde se usa: Requerido por react-native-reanimated y navegación; no se detectó import directo.
+
+@types/react
+- Para qué sirve: Tipos TypeScript para React.
+- Dónde se usa: Usado implícitamente en archivos TypeScript .tsx del proyecto.
+
+eslint
+- Para qué sirve: Analizador y linting de código JavaScript/TypeScript.
+- Dónde se usa: Herramienta de desarrollo; no hay import directo en el código fuente.
+
+eslint-config-expo
+- Para qué sirve: Reglas de ESLint preconfiguradas para Expo.
+- Dónde se usa: eslint.config.js.
+
+typescript
+- Para qué sirve: Compilador y tipos para archivos .ts/.tsx.
+- Dónde se usa: Configuración del proyecto TypeScript; no hay import directo en el código fuente.

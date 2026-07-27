@@ -1,0 +1,83 @@
+@startuml
+title Diagrama de Clases - SentinelApp
+
+interface Empleado {
+  +_id: string?
+  +cedula: string
+  +nombreApellido: string
+  +telefono?: string
+  +cargo?: string
+  +role?: string
+}
+
+class ConfigData {
+  +temp_max: number
+  +temp_min: number
+  +volt_max: number
+  +volt_min: number
+  +hum_max: number
+  +hum_min: number
+  +actualizadoEn?: string
+}
+
+class SensorData {
+  +fecha: string
+  +temperatura: number
+  +voltaje: number
+  +humedad: number
+}
+
+class EmpleadoService {
+  +getEmpleados(callerRole:string): Promise<Empleado[]>
+  +createEmpleado(empleado): Promise<Empleado>
+  +updateEmpleado(id, empleado): Promise<Empleado>
+  +deleteEmpleado(id, auditor...): Promise<void>
+}
+
+class ConfigService {
+  +getConfiguracion(): Promise<ConfigData | null>
+  +updateConfiguracion(nuevaConfig: ConfigData): Promise<boolean>
+}
+
+class SensorService {
+  +getLatestData(): Promise<SensorData>
+  +getHistorialPorHora(hora:string): Promise<SensorData[]>
+  +saveSensorData(datos: SensorData): Promise<boolean>
+}
+
+class AuthProvider {
+  +login(cedula,password): Promise<{success:boolean,message:string}>
+  +logout(): void
+  +user: AuthUser | null
+}
+
+class BluetoothProvider {
+  +connect(): Promise<void>
+  +disconnect(): void
+  +sendMessage(data:any): void
+  +sensorData: SensorData
+  +relayState: boolean
+}
+
+class DataSync {
+  +saveToLocal(temp,volt,hum): void
+  +syncWithCloud(): Promise<number>
+}
+
+class ConfigProvider {
+  +config: ConfigData
+  +setConfig(c:ConfigData): void
+}
+
+' Relaciones '
+EmpleadoService ..> "API /api/empleados" : usa
+ConfigService ..> "API /api/config" : usa
+SensorService ..> "API /api/sensores" : usa
+AuthProvider ..> EmpleadoService : llama
+AuthProvider ..> AsyncStorage : persiste sesión
+BluetoothProvider ..> DataSync : saveToLocal()
+DataSync ..> SensorService : saveSensorData()
+BluetoothProvider ..> SensorData : actualiza
+ConfigProvider ..> ConfigData : contiene
+
+@enduml

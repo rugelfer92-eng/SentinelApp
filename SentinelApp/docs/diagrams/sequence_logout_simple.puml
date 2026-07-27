@@ -1,0 +1,15 @@
+@startuml
+title Secuencia Simple: Logout
+
+actor Usuario
+participant AuthProvider
+participant Backend
+participant AsyncStorage
+
+Usuario -> AuthProvider: presiona logout
+AuthProvider -> Backend: POST /api/empleados/logout
+Backend --> AuthProvider: 200 OK
+AuthProvider -> AsyncStorage: eliminar user
+AuthProvider --> Usuario: redirigir a login
+
+@enduml

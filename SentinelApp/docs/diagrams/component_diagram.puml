@@ -1,0 +1,27 @@
+@startuml
+title Diagrama de Componentes - SentinelApp
+
+package "Aplicación Móvil" {
+  [UI Screens]
+  [AuthProvider]
+  [ConfigProvider]
+  [BluetoothProvider]
+  [DataSync]
+  [SQLite Local DB]
+}
+
+package "Servicios Backend" {
+  [API Server]
+}
+
+[UI Screens] --> [AuthProvider]
+[UI Screens] --> [ConfigProvider]
+[UI Screens] --> [BluetoothProvider]
+[AuthProvider] --> [API Server]
+[ConfigProvider] --> [API Server]
+[BluetoothProvider] --> [SQLite Local DB]
+[DataSync] --> [SQLite Local DB]
+[DataSync] --> [API Server]
+[BluetoothDevice:ESP32] <-down- [BluetoothProvider]
+
+@enduml

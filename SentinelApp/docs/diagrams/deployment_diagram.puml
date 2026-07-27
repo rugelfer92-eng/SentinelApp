@@ -1,0 +1,25 @@
+@startuml
+title Diagrama de Despliegue - SentinelApp
+
+node "Dispositivo Movil" as Mobile {
+  artifact "App React Native"
+  database "SQLite DB"
+}
+
+node "ESP32" as ESP32 {
+  component "Firmware"
+}
+
+node "Servidor API" as Server {
+  component "Node/Express"
+}
+
+node "Base de Datos" as Database {
+  database "MongoDB"
+}
+
+Mobile --> ESP32 : BLE
+Mobile --> Server : HTTP
+Server --> Database : Query/Write
+
+@enduml
