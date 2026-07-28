@@ -42,7 +42,7 @@ export const BluetoothProvider = ({ children }: any) => {
   const [relayState, setRelayState] = useState(false);
 
   const lastSaveRef = useRef(0);
-  const SAVE_INTERVAL_MS = 15000;
+  const SAVE_INTERVAL_MS = 10000;
 
   const requestPermissions = async (): Promise<boolean> => {
     if (Platform.OS !== "android") return true;

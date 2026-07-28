@@ -9,10 +9,17 @@ const Sesion    = require('../models/sesion');
 
 // Ruta del logo (colócalo en tu proyecto, ej: /assets/icon.png)
 const LOGO_PATH = path.join(__dirname, '..', 'assets', 'icon.png');
+const PAGE_CONTENT_TOP = 96;
 
 const chartCanvas = new ChartJSNodeCanvas({
   width: 500, height: 140, backgroundColour: '#ffffff',
 });
+
+function attachPageHeader(doc, fecha, subtitulo) {
+  doc.on('pageAdded', () => {
+    dibujarEncabezado(doc, fecha, subtitulo);
+  });
+}
 
 // ── Helper: rango de un día (en UTC, para que coincida con cómo Mongo
 //    guarda las fechas y evitar corrimientos por la zona horaria del
@@ -92,17 +99,43 @@ function agruparPorHora(lecturasPorMinuto) {
   return bloques;
 }
 
+function completarMinutos(filas) {
+  const porMinuto = filas.reduce((acc, fila) => {
+    acc[fila._id.minuto] = fila;
+    return acc;
+  }, {});
+
+  const completas = [];
+  for (let minuto = 0; minuto < 60; minuto += 1) {
+    completas.push(
+      porMinuto[minuto] ?? {
+        _id: { minuto },
+        temperatura: null,
+        temperaturaMin: null,
+        temperaturaMax: null,
+        humedad: null,
+        humedadMin: null,
+        humedadMax: null,
+        voltaje: null,
+        voltajeMin: null,
+        voltajeMax: null,
+      },
+    );
+  }
+  return completas;
+}
+
 // ── Generar imagen de gráfica para un bloque de hora ───────────────
 async function generarGraficaBloque(filas) {
-  const labels = filas.map((f) => String(f._id.minuto).padStart(2, '0'));
+  const labels = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
   const config = {
     type: 'line',
     data: {
       labels,
       datasets: [
-        { label: 'Voltaje',     data: filas.map(f => f.voltaje),     borderColor: '#e0a020', borderWidth: 1.5, pointRadius: 0 },
-        { label: 'Temperatura', data: filas.map(f => f.temperatura), borderColor: '#378ADD', borderWidth: 1.5, pointRadius: 0 },
-        { label: 'Humedad',     data: filas.map(f => f.humedad),     borderColor: '#639922', borderWidth: 1.5, pointRadius: 0 },
+        { label: 'Voltaje',     data: filas.map(f => f.voltaje),     borderColor: '#e0a020', borderWidth: 1.5, pointRadius: 0, spanGaps: false },
+        { label: 'Temperatura', data: filas.map(f => f.temperatura), borderColor: '#378ADD', borderWidth: 1.5, pointRadius: 0, spanGaps: false },
+        { label: 'Humedad',     data: filas.map(f => f.humedad),     borderColor: '#639922', borderWidth: 1.5, pointRadius: 0, spanGaps: false },
       ],
     },
     options: {
@@ -145,7 +178,7 @@ function drawTablaSensores(doc, headers, rows, startY) {
 
     if (y > doc.page.height - 80) {
       doc.addPage();
-      y = 60;
+      y = PAGE_CONTENT_TOP;
     }
   });
 
@@ -179,6 +212,7 @@ async function generarReporteSensores(res, fecha) {
   const horas    = Object.keys(bloques).map(Number).sort((a, b) => a - b);
 
   const doc = new PDFDoc({ margin: 40, size: 'A4', bufferPages: true });
+  attachPageHeader(doc, fecha, 'Reporte diario de sensores');
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="sensores${ddmmaa(fecha)}.pdf"`);
   doc.pipe(res);
@@ -190,13 +224,17 @@ async function generarReporteSensores(res, fecha) {
        .text('No se encontraron registros para esta fecha.', 40, y + 20, { align: 'center' });
   }
 
-  for (const h of horas) {
-    const filas = bloques[h];
+  for (let index = 0; index < horas.length; index += 1) {
+    const h = horas[index];
+    const filas = completarMinutos(bloques[h]);
 
-    if (y > doc.page.height - 260) { doc.addPage(); y = 60; }
+    if (index > 0) {
+      doc.addPage();
+      y = PAGE_CONTENT_TOP;
+    }
 
     doc.font('Helvetica-Bold').fontSize(11).fillColor('#1e293b')
-       .text(`Bloque N°${horas.indexOf(h) + 1} — ${fmtRangoBloque(h)}`, 40, y);
+       .text(`Bloque N°${index + 1} — ${fmtRangoBloque(h)}`, 40, y);
     y += 20;
 
     // Gráfica del bloque
@@ -270,7 +308,7 @@ function drawTablaAuditoria(doc, headers, rows, startY) {
 
     if (y > doc.page.height - 80) {
       doc.addPage();
-      y = 60;
+      y = PAGE_CONTENT_TOP;
     }
   });
 
@@ -293,7 +331,8 @@ async function generarReporteAuditoria(res, fecha) {
     Sesion.find({ fecha: { $gte: inicio, $lte: fin } }).sort({ fecha: 1 }).lean(),
   ]);
 
-  const doc = new PDFDoc({ margin: 40, size: 'A4' });
+  const doc = new PDFDoc({ margin: 40, size: 'A4', bufferPages: true });
+  attachPageHeader(doc, fecha, 'Reporte de Auditoría (Sesiones y Cambios)');
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="auditoria${ddmmaa(fecha)}.pdf"`);
   doc.pipe(res);
@@ -322,7 +361,7 @@ async function generarReporteAuditoria(res, fecha) {
   // SECCIÓN 1: SESIONES DE USUARIOS
   // ═══════════════════════════════════════════════════════════
   if (sesiones.length > 0) {
-    if (y > doc.page.height - 200) { doc.addPage(); y = 60; }
+    if (y > doc.page.height - 200) { doc.addPage(); y = PAGE_CONTENT_TOP; }
     y = sectionHeader(doc, '🔐  CONEXIONES DE USUARIOS', y);
     y = drawTablaAuditoria(
       doc,
@@ -343,7 +382,7 @@ async function generarReporteAuditoria(res, fecha) {
   // SECCIÓN 2: CAMBIOS DEL SISTEMA
   // ═══════════════════════════════════════════════════════════
   if (auditorias.length > 0) {
-    if (y > doc.page.height - 200) { doc.addPage(); y = 60; }
+    if (y > doc.page.height - 200) { doc.addPage(); y = PAGE_CONTENT_TOP; }
     y = sectionHeader(doc, '⚙️  CAMBIOS REALIZADOS EN EL SISTEMA', y);
     y = drawTablaAuditoria(
       doc,
