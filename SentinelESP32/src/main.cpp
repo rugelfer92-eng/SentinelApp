@@ -5,22 +5,24 @@
 #include <BLEUtils.h>
 #include <BLE2902.h>
 
-// ------------------- Pines -------------------
+// -------------------------------------- Pines --------------------------------------
+
 #define DHT_PIN 4
 #define RELAY_PIN 5
 #define ZMPT_PIN 32
 #define BUZZER_PIN 18
 #define DHTTYPE DHT22
 
-// ------------------- BLE -------------------
+// -------------------------------------- BLE --------------------------------------
+
 #define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 #define BLE_MTU 185
 
-// ------------------- Configuración -------------------
+// -------------------------------------- Configuración --------------------------------------
+
 float tempMin = 10.0;
 float tempMax = 15.0;
-float tempInter = 5.0;
 float voltMin = 90.0;
 float voltMax = 130.0;
 float humMin  = 40.0;
@@ -28,11 +30,19 @@ float humMax  = 85.0;
 bool modoManual   = false;
 bool estadoManual = false;
 
-// ------------------- Protección compresor -------------------
+// -------------------------------------- Protección compresor --------------------------------------
+
 unsigned long lastOffTime = 0;
 const unsigned long COMPRESSOR_DELAY = 180000;
+const unsigned long VOLTAGE_ALERT_DELAY = 10000;
+const unsigned long SENSOR_ERROR_DELAY = 10000;
+const float VOLTAGE_OFF_THRESHOLD = 50.0;
+unsigned long lastVoltageAlertTime = 0;
+unsigned long sensorErrorStartTime = 0;
+bool sensorErrorActive = false;
 
-// ------------------- Estado del sistema -------------------
+// -------------------------------------- Estado del sistema --------------------------------------
+
 enum EstadoSistema {
     IDLE,
     ENFRIANDO,
@@ -42,15 +52,18 @@ enum EstadoSistema {
 };
 EstadoSistema estadoActual = IDLE;
 
-// ------------------- Sensores -------------------
+// -------------------------------------- Sensores --------------------------------------
+
 DHT dht(DHT_PIN, DHTTYPE);
 
-// ------------------- BLE -------------------
+// -------------------------------------- BLE --------------------------------------
+
 BLEServer         *pServer          = nullptr;
 BLECharacteristic *pCharacteristic  = nullptr;
 bool deviceConnected = false;
 
-// ------------------- Voltaje -------------------
+// -------------------------------------- Voltaje --------------------------------------
+
 float leerVoltajeAC() {
     const int muestras = 600;
     float suma = 0;
@@ -61,31 +74,30 @@ float leerVoltajeAC() {
         delayMicroseconds(50);
     }
     float vrms        = sqrt(suma / muestras);
-    float voltajeReal = vrms * 0.158;
+    float voltajeReal = vrms * 0.06; // Factor de calibración para el sensor ZMPT101B
     return voltajeReal;
 }
 
-// ------------------- Funciones compresor -------------------
-// Prototipo para el buzzer (definida más abajo)
+// -------------------------------------- Funciones del Buzzer --------------------------------------
+
 void beepShorts(int count);
 bool puedeEncenderCompresor() {
     return (millis() - lastOffTime) > COMPRESSOR_DELAY;
 }
 void encenderCompresor() {
     digitalWrite(RELAY_PIN, LOW);
-    // Pitido corto al encender
     beepShorts(1);
     estadoActual = ENFRIANDO;
 }
 void apagarCompresor() {
     digitalWrite(RELAY_PIN, HIGH);
-    // Pitido corto al apagar
     beepShorts(1);
     lastOffTime  = millis();
     estadoActual = IDLE;
 }
 
-// ------------------- Buzzer -------------------
+// -------------------------------------- Buzzer --------------------------------------
+
 void beepShorts(int count) {
     for (int i = 0; i < count; ++i) {
         digitalWrite(BUZZER_PIN, HIGH);
@@ -95,14 +107,16 @@ void beepShorts(int count) {
     }
 }
 
-// ------------------- Helper JSON -------------------
+// -------------------------------------- Helper JSON --------------------------------------
+
 int extraerBool(String json, String clave) {
     if (json.indexOf("\"" + clave + "\":true")  >= 0) return 1;
     if (json.indexOf("\"" + clave + "\":false") >= 0) return 0;
     return -1;
 }
 
-// ------------------- BLE Callbacks -------------------
+// -------------------------------------- llamado del BLE --------------------------------------
+
 class MyServerCallbacks : public BLEServerCallbacks {
     void onConnect(BLEServer* pSrv) override {
         deviceConnected = true;
@@ -139,21 +153,29 @@ class MyCallbacks : public BLECharacteristicCallbacks {
                 if (payload[i] == ',') idx++;
                 else v[idx] += payload[i];
             }
-            if (idx == 8) {
+            if (idx >= 7) {
                 for (int j = 0; j < 9; j++) v[j].trim();
                 tempMax      = v[0].toFloat();
                 tempMin      = v[1].toFloat();
-                tempInter    = v[2].toFloat();  // intervalo antes de re-encender
-                voltMax      = v[3].toFloat();
-                voltMin      = v[4].toFloat();
-                humMax       = v[5].toFloat();
-                humMin       = v[6].toFloat();
-                modoManual   = v[7].toInt();
-                estadoManual = v[8].toInt();
-                Serial.printf("Config: Temp %.1f-%.1f (inter %.1f) | Volt %.1f-%.1f | Hum %.1f-%.1f\n",
-                              tempMin, tempMax, tempInter, voltMin, voltMax, humMin, humMax);
+                if (idx >= 8) {
+                    voltMax  = v[3].toFloat();
+                    voltMin  = v[4].toFloat();
+                    humMax   = v[5].toFloat();
+                    humMin   = v[6].toFloat();
+                    modoManual   = v[7].toInt();
+                    estadoManual = v[8].toInt();
+                } else {
+                    voltMax  = v[2].toFloat();
+                    voltMin  = v[3].toFloat();
+                    humMax   = v[4].toFloat();
+                    humMin   = v[5].toFloat();
+                    modoManual   = v[6].toInt();
+                    estadoManual = v[7].toInt();
+                }
+                Serial.printf("Config: Temp %.1f-%.1f | Volt %.1f-%.1f | Hum %.1f-%.1f\n",
+                              tempMin, tempMax, voltMin, voltMax, humMin, humMax);
             } else {
-                Serial.println("CONF mal formateado (esperados 9 valores)");
+                Serial.println("CONF mal formateado (esperados 8 o 9 valores)");
             }
             return;
         }
@@ -192,7 +214,8 @@ class MyCallbacks : public BLECharacteristicCallbacks {
     }
 };
 
-// ------------------- SETUP -------------------
+// --------------------------------------VOID SETUP --------------------------------------
+
 void setup() {
     Serial.begin(115200);
 
@@ -201,7 +224,6 @@ void setup() {
     pinMode(BUZZER_PIN, OUTPUT);
     digitalWrite(BUZZER_PIN, LOW);
 
-    // Evitar que el compresor se encienda inmediatamente al arrancar
     lastOffTime = millis();
 
     dht.begin();
@@ -233,54 +255,102 @@ void setup() {
 
 int ciclo = 0;
 
-// ------------------- LOOP -------------------
+// -------------------------------------- VOID LOOP --------------------------------------
+
 void loop() {
     float temp = dht.readTemperature();
     float hum  = dht.readHumidity();
 
     if (isnan(temp) || isnan(hum)) {
-        apagarCompresor();
-        estadoActual = ERROR_SENSOR;
-        Serial.println("Error: sensor DHT22 no responde");
+        if (!sensorErrorActive) {
+            sensorErrorActive = true;
+            sensorErrorStartTime = millis();
+            Serial.println("Error: sensor DHT22 no responde, esperando gracia de 10s");
+        } else if (millis() - sensorErrorStartTime >= SENSOR_ERROR_DELAY) {
+            apagarCompresor();
+            estadoActual = ERROR_SENSOR;
+            Serial.println("Error: sensor DHT22 no responde por mas de 10s, apagando compresor");
+        }
         delay(2000);
         return;
     }
 
+    if (sensorErrorActive) {
+        sensorErrorActive = false;
+        sensorErrorStartTime = 0;
+        Serial.println("Sensor DHT22 recuperado");
+    }
+
     float volt  = leerVoltajeAC();
     int senVolt = analogRead(ZMPT_PIN);
+    bool compresorEncendido = (digitalRead(RELAY_PIN) == LOW);
+    bool voltajePermitido = true;
 
-    // ------------------- PROTECCION VOLTAJE -------------------
-    if (volt < voltMin || volt > voltMax) {
+    // -------------------------------------- PROTECCION VOLTAJE --------------------------------------
+
+    if (volt < VOLTAGE_OFF_THRESHOLD) {
+        if (compresorEncendido) {
+            digitalWrite(RELAY_PIN, HIGH);
+            lastOffTime = millis();
+        }
+        estadoActual = IDLE;
+        lastVoltageAlertTime = 0;
+        voltajePermitido = false;
+        Serial.println("Voltaje muy bajo: equipo considerado apagado");
+    } else if (volt < voltMin || volt > voltMax) {
         if (estadoActual != PROTECCION_VOLT) {
-            Serial.println("⚠️ Falla de voltaje detectada: activando proteccion");
+            Serial.println("Falla de voltaje detectada: activando proteccion");
             apagarCompresor();
             lastOffTime = millis();
             estadoActual = PROTECCION_VOLT;
-            // 3 pitidos cortos
+            lastVoltageAlertTime = millis();
             beepShorts(3);
+        } else if (millis() - lastVoltageAlertTime >= VOLTAGE_ALERT_DELAY) {
+            Serial.println("Voltaje anormal persistente: reactivando alerta");
+            beepShorts(3);
+            lastVoltageAlertTime = millis();
         }
+        voltajePermitido = false;
     } else {
-        if (estadoActual == PROTECCION_VOLT && puedeEncenderCompresor()) {
-            estadoActual = IDLE;
-            Serial.println("✅ Proteccion por voltaje finalizada");
+        if (estadoActual == PROTECCION_VOLT) {
+            estadoActual = ESPERA_COMPRESOR;
+            lastVoltageAlertTime = 0;
+            Serial.println("Voltaje normalizado: entrando a espera para reinicio");
         }
     }
 
-    // ------------------- CONTROL -------------------
-    if (modoManual) {
-        if (estadoManual) encenderCompresor();
-        else              apagarCompresor();
-    } else {
-        if (temp <= tempMin) {
-            apagarCompresor();
+    // -------------------------------------- CONTROL --------------------------------------
+
+    if (voltajePermitido) {
+        if (modoManual) {
+            if (!estadoManual) {
+                if (compresorEncendido) apagarCompresor();
+            } else if (estadoActual == PROTECCION_VOLT) {
+                if (compresorEncendido) apagarCompresor();
+            } else if (temp <= tempMin) {
+                if (compresorEncendido) apagarCompresor();
+            } else if (temp >= tempMax) {
+                if (!compresorEncendido && puedeEncenderCompresor()) {
+                    encenderCompresor();
+                } else if (!compresorEncendido) {
+                    estadoActual = ESPERA_COMPRESOR;
+                }
+            }
+        } else {
+            if (temp <= tempMin) {
+                if (compresorEncendido) apagarCompresor();
+            }
+            else if (temp >= tempMax) {
+                if (!compresorEncendido && puedeEncenderCompresor()) encenderCompresor();
+                else if (!compresorEncendido) estadoActual = ESPERA_COMPRESOR;
+            }
         }
-        else if (temp >= (tempMin + tempInter)) {
-            if (puedeEncenderCompresor()) encenderCompresor();
-            else estadoActual = ESPERA_COMPRESOR;
-        }
+    } else if (compresorEncendido) {
+        apagarCompresor();
     }
 
-    // ------------------- ENVIO BLE -------------------
+    // -------------------------------------- ENVIO BLE --------------------------------------
+
     if (deviceConnected) {
         String json = "{";
         json += "\"temp\":"   + String(temp, 1) + ",";
@@ -294,10 +364,11 @@ void loop() {
         pCharacteristic->notify();
     }
 
-    // ------------------- DEBUG (cada 10 ciclos = ~1 seg) -------------------
     unsigned long tiempoRestante = 0;
     if (!puedeEncenderCompresor())
         tiempoRestante = (COMPRESSOR_DELAY - (millis() - lastOffTime)) / 1000;
+
+    // -------------------------------------- Volcado de datos en Consola --------------------------------------
 
     if (ciclo == 10) {
         Serial.println("\n------------ Sentinel-Cold ------------");

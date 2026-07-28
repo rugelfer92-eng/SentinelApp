@@ -6,13 +6,13 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { useAuth } from "../../src/auth/AuthContext";
+import { loginStyles } from "../../src/theme/loginStyles";
 
 export default function LoginScreen() {
   const { login } = useAuth();
@@ -27,7 +27,11 @@ export default function LoginScreen() {
     const rawNumero = cedula.trim().replace(/[^0-9]/g, "");
     if (!rawNumero || !password.trim()) {
       const msg = "Ingresa tu tipo de documento, cédula y contraseña";
-      Platform.OS === "web" ? alert(msg) : Alert.alert("Atención", msg);
+      if (Platform.OS === "web") {
+        alert(msg);
+      } else {
+        Alert.alert("Atención", msg);
+      }
       return;
     }
 
@@ -38,9 +42,11 @@ export default function LoginScreen() {
     setLoading(false);
 
     if (!result.success) {
-      Platform.OS === "web"
-        ? alert(result.message)
-        : Alert.alert("Error", result.message);
+      if (Platform.OS === "web") {
+        alert(result.message);
+      } else {
+        Alert.alert("Error", result.message);
+      }
       return;
     }
 
@@ -53,32 +59,32 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={s.root}
+      style={loginStyles.root}
       behavior={Platform.OS === "android" ? "height" : undefined}
     >
-      <View style={s.topBlob} />
-      <View style={s.bottomBlob} />
+      <View style={loginStyles.topBlob} />
+      <View style={loginStyles.bottomBlob} />
 
-      <View style={s.card}>
-        <View style={s.iconWrap}>
-          <Text style={s.iconText}>❄️</Text>
+      <View style={loginStyles.card}>
+        <View style={loginStyles.iconWrap}>
+          <Text style={loginStyles.iconText}>❄️</Text>
         </View>
 
-        <Text style={s.brand}>Sentinel Cold</Text>
-        <Text style={s.sub}>Sistema de Control Frigorifico</Text>
+        <Text style={loginStyles.brand}>Sentinel Cold</Text>
+        <Text style={loginStyles.sub}>Sistema de Control Frigorifico</Text>
 
-        <View style={s.divider} />
+        <View style={loginStyles.divider} />
 
-        <Text style={s.label}>Documento de Identidad</Text>
-        <View style={s.documentRow}>
+        <Text style={loginStyles.label}>Documento de Identidad</Text>
+        <View style={loginStyles.documentRow}>
           <TouchableOpacity
-            style={[s.input, s.documentTypeButton]}
+            style={[loginStyles.input, loginStyles.documentTypeButton]}
             onPress={() => setDocumentTypePickerVisible(true)}
           >
-            <Text style={s.documentTypeText}>{tipoDocumento}</Text>
+            <Text style={loginStyles.documentTypeText}>{tipoDocumento}</Text>
           </TouchableOpacity>
           <TextInput
-            style={[s.input, s.documentInput]}
+            style={[loginStyles.input, loginStyles.documentInput]}
             placeholder="Ej: 12345678"
             placeholderTextColor="#94a3b8"
             value={cedula}
@@ -93,9 +99,9 @@ export default function LoginScreen() {
           transparent
           animationType="fade"
         >
-          <View style={s.modalOverlay}>
-            <View style={s.modalContent}>
-              <Text style={s.modalTitle}>Selecciona tipo de documento</Text>
+          <View style={loginStyles.modalOverlay}>
+            <View style={loginStyles.modalContent}>
+              <Text style={loginStyles.modalTitle}>Selecciona tipo de documento</Text>
               {(["V", "E", "J"] as const).map((tipo) => (
                 <TouchableOpacity
                   key={tipo}
@@ -104,26 +110,26 @@ export default function LoginScreen() {
                     setDocumentTypePickerVisible(false);
                   }}
                   style={[
-                    s.modalOption,
-                    tipoDocumento === tipo && s.modalOptionSelected,
+                    loginStyles.modalOption,
+                    tipoDocumento === tipo && loginStyles.modalOptionSelected,
                   ]}
                 >
-                  <Text style={s.modalOptionText}>{tipo}</Text>
+                  <Text style={loginStyles.modalOptionText}>{tipo}</Text>
                 </TouchableOpacity>
               ))}
               <TouchableOpacity
                 onPress={() => setDocumentTypePickerVisible(false)}
-                style={s.modalCancel}
+                style={loginStyles.modalCancel}
               >
-                <Text style={s.modalCancelText}>Cancelar</Text>
+                <Text style={loginStyles.modalCancelText}>Cancelar</Text>
               </TouchableOpacity>
             </View>
           </View>
         </Modal>
 
-        <Text style={s.label}>Contraseña</Text>
+        <Text style={loginStyles.label}>Contraseña</Text>
         <TextInput
-          style={s.input}
+          style={loginStyles.input}
           placeholder="••••••••"
           placeholderTextColor="#94a3b8"
           value={password}
@@ -132,211 +138,21 @@ export default function LoginScreen() {
         />
 
         <TouchableOpacity
-          style={[s.btn, loading && { opacity: 0.7 }]}
+          style={[loginStyles.btn, loading && { opacity: 0.7 }]}
           onPress={handleLogin}
           disabled={loading}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={s.btnText}>INGRESAR AL SISTEMA</Text>
+            <Text style={loginStyles.btnText}>INGRESAR AL SISTEMA</Text>
           )}
         </TouchableOpacity>
 
-        <Text style={s.hint}>
+        <Text style={loginStyles.hint}>
           Contacta al administrador si no tienes acceso
         </Text>
       </View>
     </KeyboardAvoidingView>
   );
 }
-
-const s = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#f0f4ff",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  // Blobs decorativos de fondo
-  topBlob: {
-    position: "absolute",
-    top: -80,
-    left: -80,
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: "rgba(37, 99, 235, 0.12)",
-  },
-  bottomBlob: {
-    position: "absolute",
-    bottom: -60,
-    right: -60,
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: "rgba(16, 185, 129, 0.10)",
-  },
-
-  card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 28,
-    padding: 32,
-    width: "90%",
-    maxWidth: 380,
-    // Sombra
-    elevation: 12,
-    shadowColor: "#2563eb",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-  },
-
-  iconWrap: {
-    alignSelf: "center",
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: "#eff6ff",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  iconText: { fontSize: 36 },
-
-  brand: {
-    textAlign: "center",
-    fontSize: 26,
-    fontWeight: "800",
-    color: "#1e3a8a",
-    letterSpacing: 0.5,
-  },
-  sub: {
-    textAlign: "center",
-    fontSize: 12,
-    color: "#64748b",
-    marginTop: 4,
-    letterSpacing: 0.3,
-  },
-
-  divider: {
-    height: 1,
-    backgroundColor: "#e2e8f0",
-    marginVertical: 24,
-  },
-
-  label: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#2563eb",
-    marginBottom: 6,
-    marginLeft: 2,
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-  },
-  documentRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  documentTypeButton: {
-    flex: 0.28,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 12,
-    backgroundColor: "#f8fafc",
-    borderWidth: 1.5,
-    borderColor: "#e2e8f0",
-    paddingVertical: 13,
-    marginRight: 8,
-  },
-  documentTypeText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1e293b",
-  },
-  documentInput: {
-    flex: 0.72,
-  },
-  input: {
-    backgroundColor: "#f8fafc",
-    borderWidth: 1.5,
-    borderColor: "#e2e8f0",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    fontSize: 16,
-    color: "#1e293b",
-    marginBottom: 16,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  modalContent: {
-    width: "100%",
-    backgroundColor: "#fff",
-    borderRadius: 18,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: "800",
-    marginBottom: 16,
-    color: "#1e293b",
-  },
-  modalOption: {
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: "#f8fafc",
-    marginBottom: 10,
-  },
-  modalOptionSelected: {
-    backgroundColor: "#eef2ff",
-  },
-  modalOptionText: {
-    fontWeight: "700",
-    color: "#1e293b",
-  },
-  modalCancel: {
-    marginTop: 8,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: "#e2e8f0",
-    alignItems: "center",
-  },
-  modalCancelText: {
-    fontWeight: "700",
-    color: "#1e293b",
-  },
-
-  btn: {
-    backgroundColor: "#2563eb",
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: "center",
-    marginTop: 8,
-    elevation: 4,
-    shadowColor: "#2563eb",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  btnText: {
-    color: "#fff",
-    fontWeight: "800",
-    fontSize: 15,
-    letterSpacing: 1,
-  },
-
-  hint: {
-    textAlign: "center",
-    fontSize: 11,
-    color: "#94a3b8",
-    marginTop: 20,
-  },
-});

@@ -21,15 +21,14 @@ export const unstable_settings = {
   initialRouteName: "(tabs)",
 };
 
-// 🔥 Componente interno para iniciar conexión Bluetooth
 function BluetoothInitializer() {
   const { connect } = useBluetooth();
 
   useEffect(() => {
-    console.log("🔥 Iniciando conexión Bluetooth...");
+    console.log("Iniciando conexión Bluetooth...");
     connect().catch((err) => {
       console.log(
-        "⚠️ No se pudo iniciar Bluetooth (la app continúa igual):",
+        "No se pudo iniciar Bluetooth (la app continúa igual):",
         err,
       );
     });
@@ -92,14 +91,14 @@ export default function RootLayout() {
     }, 500);
 
     initNotifications().catch((err) => {
-      console.log("⚠️ No se pudo inicializar las notificaciones:", err);
+      console.log("No se pudo inicializar las notificaciones:", err);
     });
 
     if (Platform.OS === "android") {
       NavigationBar.setVisibilityAsync("hidden")
         .then(() => NavigationBar.setBehaviorAsync("overlay-swipe"))
         .catch((err) => {
-          console.log("⚠️ No se pudo ocultar la barra de navegación:", err);
+          console.log("No se pudo ocultar la barra de navegación:", err);
         });
     }
 
@@ -108,7 +107,7 @@ export default function RootLayout() {
       if (Platform.OS === "android") {
         NavigationBar.setVisibilityAsync("visible")
           .catch((err) => {
-            console.log("⚠️ No se pudo restaurar la barra de navegación:", err);
+            console.log("No se pudo restaurar la barra de navegación:", err);
           });
       }
     };

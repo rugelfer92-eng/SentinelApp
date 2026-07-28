@@ -73,6 +73,12 @@ export const BluetoothProvider = ({ children }: any) => {
         permisosOpcionales.push(PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION);
       }
 
+      if (Platform.Version >= 31) {
+        permisosRequeridos.push(
+          "android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE",
+        );
+      }
+
       if (permisosRequeridos.length === 0) {
         console.log(
           "ℹNo hay permisos BLE disponibles para solicitar en esta versión de React Native.",

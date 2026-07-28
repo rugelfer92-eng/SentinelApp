@@ -1,5 +1,5 @@
-import * as FileSystem from "expo-file-system";
-import React, { useCallback, useEffect, useState } from "react";
+import * as FileSystem from "expo-file-system/legacy";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -54,6 +54,12 @@ function ayer() {
 // AAAA-MM-DD
 const FECHA_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
+// "2026-07-27" -> "270726"
+function ddmmaa(fechaStr: string) {
+  const [yyyy, mm, dd] = fechaStr.split("-");
+  return `${dd}${mm}${yyyy.slice(2)}`;
+}
+
 // ── Componente principal ──────────────────────────────────────────
 export default function AuditoriaScreen() {
   const { user } = useAuth();
@@ -69,6 +75,9 @@ export default function AuditoriaScreen() {
   const [syncModalVisible, setSyncModalVisible] = useState(false);
   const [syncingPending, setSyncingPending] = useState(false);
   const [pendingRecordsLoading, setPendingRecordsLoading] = useState(false);
+  // Guarda el URI de la carpeta de Descargas ya autorizada por el usuario (SAF),
+  // para no volver a pedir el permiso en cada descarga dentro de la misma sesión.
+  const downloadDirUriRef = useRef<string | null>(null);
 
   const cargarDatos = useCallback(async () => {
     setLoading(true);
@@ -140,8 +149,9 @@ export default function AuditoriaScreen() {
   const hayRegistros = sesiones.length > 0 || cambios.length > 0;
 
   // ──────────────────────────────────────────────────────── Descarga PDF ────────────────────────────────────────────────────────
-  const generarPDF = async (tipo: "todo" | "sensores" | "auditoria") => {
+  const generarPDF = async (tipo: "sensores" | "auditoria") => {
     const url = `${BASE_URL}/api/pdf/dia?fecha=${fecha}&tipo=${tipo}`;
+    const fileName = `${tipo}${ddmmaa(fecha)}.pdf`;
 
     if (Platform.OS === "web") {
       setPdfLoading(true);
@@ -155,27 +165,55 @@ export default function AuditoriaScreen() {
 
     setPdfLoading(true);
     try {
-      const fileName = `reporte-auditoria-${fecha}-${tipo}.pdf`;
-      const downloadsDir = "/storage/emulated/0/Download/";
-      const fileUri = `${downloadsDir}${fileName}`;
-
-      const downloadRes = await FileSystem.downloadAsync(url, fileUri);
+      // 1) Descargar el PDF a la carpeta privada de la app (cache).
+      //    Desde Android 10 (scoped storage) ya no se puede escribir directo
+      //    en /storage/emulated/0/Download/, así que primero baja aquí.
+      const tempUri = `${FileSystem.cacheDirectory}${fileName}`;
+      const downloadRes = await FileSystem.downloadAsync(url, tempUri);
       if (downloadRes.status !== 200 && downloadRes.status !== 201) {
         throw new Error("No se pudo descargar el archivo PDF.");
       }
 
-      const savedUri = downloadRes.uri || fileUri;
-      try {
-        const contentUri = await FileSystem.getContentUriAsync(savedUri);
-        await Linking.openURL(contentUri);
-      } catch {
-        await Linking.openURL(savedUri);
+      if (Platform.OS === "android") {
+        // 2) Pedir (una sola vez por sesión) permiso sobre una carpeta pública.
+        //    El usuario debe elegir "Download"/"Descargas" en el selector del sistema.
+        let dirUri = downloadDirUriRef.current;
+        if (!dirUri) {
+          const perm =
+            await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+          if (!perm.granted) {
+            throw new Error(
+              "Necesitas conceder acceso a la carpeta de Descargas para guardar el PDF.",
+            );
+          }
+          dirUri = perm.directoryUri;
+          downloadDirUriRef.current = dirUri;
+        }
+
+        // 3) Copiar el PDF descargado hacia la carpeta pública elegida.
+        const base64 = await FileSystem.readAsStringAsync(tempUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        const destUri = await FileSystem.StorageAccessFramework.createFileAsync(
+          dirUri,
+          fileName.replace(/\.pdf$/, ""),
+          "application/pdf",
+        );
+        await FileSystem.writeAsStringAsync(destUri, base64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+
+        Alert.alert("PDF guardado", `Se guardó "${fileName}" en la carpeta que elegiste.`);
+      } else {
+        // iOS no tiene una carpeta pública de "Descargas"; se abre para que
+        // el usuario lo guarde donde prefiera desde el visor de archivos.
+        await Linking.openURL(tempUri);
       }
     } catch (error: any) {
       Alert.alert(
         "Error",
         error?.message ||
-          "No se pudo generar o abrir el PDF. Intenta nuevamente.",
+          "No se pudo generar o guardar el PDF. Intenta nuevamente.",
       );
     } finally {
       setPdfLoading(false);
@@ -281,32 +319,24 @@ export default function AuditoriaScreen() {
             </Text>
           </Text>
           <Text style={s.pdfDesc}>
-            El reporte incluye historial de sensores, sesiones de usuarios y
-            cambios del sistema en un documento profesional listo para imprimir
-            o archivar.
+            Elige el tipo de reporte: historial de sensores, o auditoría con
+            inicios de sesión y cambios realizados por los usuarios.
           </Text>
         </View>
 
         {[
           {
-            tipo: "todo" as const,
-            icon: "📊",
-            label: "Reporte Completo",
-            sub: "Sensores + Sesiones + Cambios",
-            color: "#1e3a8a",
-          },
-          {
             tipo: "sensores" as const,
             icon: "🌡️",
-            label: "Solo Sensores",
+            label: "Sensores",
             sub: "Historial de temperatura, voltaje y humedad",
             color: "#0369a1",
           },
           {
             tipo: "auditoria" as const,
             icon: "🔐",
-            label: "Auditoría y Sesiones",
-            sub: "Accesos y cambios del sistema",
+            label: "Auditoria",
+            sub: "Inicios de sesión y cambios realizados por usuarios",
             color: "#7c3aed",
           },
         ].map((opt) => (
@@ -332,8 +362,9 @@ export default function AuditoriaScreen() {
         ))}
 
         <Text style={s.pdfNote}>
-          💡 En Android/iOS el enlace al PDF se mostrará para abrir en el
-          navegador. En web el archivo se descarga directamente.
+          💡 En Android, la primera vez te pedirá elegir la carpeta de
+          Descargas para guardar ahí los PDFs. En iOS se abrirá el archivo
+          para que elijas dónde guardarlo. En web se descarga directamente.
         </Text>
       </ScrollView>
     </>
